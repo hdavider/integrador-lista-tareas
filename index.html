@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de tareas Ada School con Express</title>
+</head>
+<body>
+    <h1>Lista de tareas Ada School con Express</h1>
+
+    <div> 
+        <h2>Tareas</h2>
+        <ul id="taskList"></ul>
+    </div>
+
+    <div>
+        <h2>Agregar Tarea</h2>
+        <form id="addTaskForm">
+            <label for="taskDescription">Descripción:</label>
+            <input type="text" id="taskDescription" name="taskDescription" required>
+            <button type="submit">Agregar Tarea</button>
+        </form>
+    </div>
+
+    <div>
+        <h2>Completar Tarea</h2>
+        <form id="completeTaskForm">
+            <label for="completeTaskIndex">Índice de tarea a completar:</label>
+            <input type="number" id="completeTaskIndex" name="completeTaskIndex" required>
+            <button type="submit">Completar Tarea</button>
+        </form>
+    </div>
+
+    <div>
+        <h2>Eliminar Tarea</h2>
+        <form id="deleteTaskForm">
+            <label for="deleteTaskIndex">Índice de tarea a eliminar:</label>
+            <input type="number" id="deleteTaskIndex" name="deleteTaskIndex" required>
+            <button type="submit">Eliminar Tarea</button>
+        </form>
+    </div>
+
+    <script>
+        async function fetchTasks() {
+            const response = await fetch('/tareas');
+            const tasks = await response.json();
+
+            const taskList = document.getElementById('taskList');
+            taskList.innerHTML = '';
+
+            tasks.forEach(task => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `[${task.indice}] [${task.estado ? 'X' : ' '}] ${task.descripcion}`;
+                taskList.appendChild(listItem);
+            });
+        }
+
+        async function addTask(description) {
+            const response = await fetch('/tareas', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ descripcion: description }),
+            });
+
+            if (response.ok) {
+                console.log('Tarea agregada correctamente.');
+                fetchTasks();
+            } else {
+                console.error('Error al agregar tarea.');
+            }
+        }
+
+        async function completeTask(index) {
+            const response = await fetch('/tareas', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ indice: index }),
+            });
+
+            if (response.ok) {
+                console.log(`Tarea #${index} marcada como completada.`);
+                fetchTasks();
+            } else {
+                console.error('Error al completar tarea.');
+            }
+        }
+
+        async function deleteTask(index) {
+    const response = await fetch(`/tareas/${index}`, {
+        method: 'DELETE',
+    });
+
+    if (response.ok) {
+        console.log(`Tarea #${index} eliminada.`);
+        fetchTasks();
+    } else {
+        console.error('Error al eliminar tarea.');
+    }
+}
+
+        document.getElementById('addTaskForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+            const taskDescription = document.getElementById('taskDescription').value;
+            addTask(taskDescription);
+        });
+
+        document.getElementById('completeTaskForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+            const taskIndex = parseInt(document.getElementById('completeTaskIndex').value);
+            completeTask(taskIndex);
+        });
+
+        document.getElementById('deleteTaskForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+            const taskIndex = parseInt(document.getElementById('deleteTaskIndex').value);
+            deleteTask(taskIndex);
+        });
+
+        // Fetch tasks on page load
+        fetchTasks();
+    </script>
+</body>
+</html>

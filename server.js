@@ -7,28 +7,31 @@ const app = express();
 const port = 3000;
 const tareas = [];
 
-// Middleware para validar que solo lleguen solicitudes por métodos HTTP válidos
-app.use((req, res, next) => {
-    if (req.method !== 'GET' && req.method !== 'POST' && req.method !== 'PUT' && req.method !== 'DELETE') {
-        return res.status(400).json({ message: 'Método HTTP no válido.' });
-    }
-    next();
-});
-
 app.use(bodyParser.json());
 
-// Middleware para el router list-edit-router
-app.use('/tareas', (req, res, next) => {
-    if (req.method === 'POST' && (!req.body || !req.body.descripcion || req.body.descripcion.trim() === '')) {
-        return res.status(400).json({ message: 'Solicitud POST con cuerpo vacío o descripción faltante.' });
-    }
 
-    if (req.method === 'PUT' && (!req.body || !req.body.indice)) {
-        return res.status(400).json({ message: 'Solicitud PUT con cuerpo vacío o índice faltante.' });
+function validateRequestBody(req, res, next) {
+    if (!req.body || Object.keys(req.body).length === 0) {
+        return res.status(400).json({ message: 'El cuerpo de la solicitud está vacío.' });
     }
-
+    if (req.method === 'POST' && !req.body.descripcion) {
+        return res.status(400).json({ message: 'Falta información válida para crear la tarea.' });
+    }
+    if (req.method === 'PUT' && (req.body.indice === undefined || req.body.indice === null)) {
+        return res.status(400).json({ message: 'Falta información válida para editar la tarea.' });
+    }
     next();
-});
+}
+
+function validateHttpMethods(req, res, next) {
+    const validMethods = ['GET', 'POST', 'PUT', 'DELETE'];
+    if (!validMethods.includes(req.method)) {
+        return res.status(405).send('Método HTTP no permitido.');
+    }
+    next();
+}
+
+app.use(validateHttpMethods);
 
 app.get('/', (req, res) => {
     const filePath = path.join(__dirname, 'index.html');
@@ -46,13 +49,13 @@ app.get('/tareas', (req, res) => {
     res.json(tareasConIndice);
 });
 
-app.post('/tareas', (req, res) => {
+app.post('/tareas', validateRequestBody, (req, res) => {
     const nuevaTarea = req.body;
     agregarTarea(nuevaTarea.descripcion);
     res.status(201).json({ message: 'Tarea agregada correctamente.' });
 });
 
-app.put('/tareas', (req, res) => {
+app.put('/tareas', validateRequestBody, (req, res) => {
     const { indice } = req.body;
     const tareaExistente = completarTarea(indice);
 

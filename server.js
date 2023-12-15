@@ -7,7 +7,28 @@ const app = express();
 const port = 3000;
 const tareas = [];
 
+// Middleware para validar que solo lleguen solicitudes por métodos HTTP válidos
+app.use((req, res, next) => {
+    if (req.method !== 'GET' && req.method !== 'POST' && req.method !== 'PUT' && req.method !== 'DELETE') {
+        return res.status(400).json({ message: 'Método HTTP no válido.' });
+    }
+    next();
+});
+
 app.use(bodyParser.json());
+
+// Middleware para el router list-edit-router
+app.use('/tareas', (req, res, next) => {
+    if (req.method === 'POST' && (!req.body || !req.body.descripcion || req.body.descripcion.trim() === '')) {
+        return res.status(400).json({ message: 'Solicitud POST con cuerpo vacío o descripción faltante.' });
+    }
+
+    if (req.method === 'PUT' && (!req.body || !req.body.indice)) {
+        return res.status(400).json({ message: 'Solicitud PUT con cuerpo vacío o índice faltante.' });
+    }
+
+    next();
+});
 
 app.get('/', (req, res) => {
     const filePath = path.join(__dirname, 'index.html');

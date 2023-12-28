@@ -42,17 +42,33 @@
 
     <script>
         async function fetchTasks() {
-            const response = await fetch('/tareas');
-            const tasks = await response.json();
+            let url = '/tareas';
+            const token = localStorage.getItem('jwtToken');
 
-            const taskList = document.getElementById('taskList');
-            taskList.innerHTML = '';
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
 
-            tasks.forEach(task => {
-                const listItem = document.createElement('li');
-                listItem.textContent = `[${task.indice}] [${task.estado ? 'X' : ' '}] ${task.descripcion}`;
-                taskList.appendChild(listItem);
-            });
+                if (!response.ok) {
+                    throw new Error('Solicitud fallida: ' + response.status);
+                }
+
+                const tasks = await response.json();
+
+                const taskList = document.getElementById('taskList');
+                taskList.innerHTML = '';
+
+                tasks.forEach((task, index) => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = `[${index + 1}] [${task.estado ? 'X' : ' '}] ${task.descripcion}`;
+                    taskList.appendChild(listItem);
+                });
+            } catch (error) {
+                console.error('Error al cargar las tareas:', error);
+            }
         }
 
         async function addTask(description) {
@@ -60,6 +76,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + localStorage.getItem('jwtToken')
                 },
                 body: JSON.stringify({ descripcion: description }),
             });
@@ -73,16 +90,17 @@
         }
 
         async function completeTask(index) {
-            const response = await fetch('/tareas', {
+            const response = await fetch(`/tareas/${index}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + localStorage.getItem('jwtToken')
                 },
-                body: JSON.stringify({ indice: index }),
+                body: JSON.stringify({ estado: true }),
             });
 
             if (response.ok) {
-                console.log(`Tarea #${index} marcada como completada.`);
+                console.log(`Tarea #${index} completada.`);
                 fetchTasks();
             } else {
                 console.error('Error al completar tarea.');
@@ -90,37 +108,43 @@
         }
 
         async function deleteTask(index) {
-    const response = await fetch(`/tareas/${index}`, {
-        method: 'DELETE',
-    });
+            const response = await fetch(`/tareas/${index}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('jwtToken')
+                },
+            });
 
-    if (response.ok) {
-        console.log(`Tarea #${index} eliminada.`);
-        fetchTasks();
-    } else {
-        console.error('Error al eliminar tarea.');
-    }
-}
+            if (response.ok) {
+                console.log(`Tarea #${index} eliminada.`);
+                fetchTasks();
+            } else {
+                console.error('Error al eliminar tarea.');
+            }
+        }
 
         document.getElementById('addTaskForm').addEventListener('submit', function (event) {
             event.preventDefault();
             const taskDescription = document.getElementById('taskDescription').value;
             addTask(taskDescription);
+            document.getElementById('taskDescription').value = ''; // Limpiar el campo después de agregar
         });
 
         document.getElementById('completeTaskForm').addEventListener('submit', function (event) {
             event.preventDefault();
             const taskIndex = parseInt(document.getElementById('completeTaskIndex').value);
             completeTask(taskIndex);
+            document.getElementById('completeTaskIndex').value = ''; // Limpiar el campo después de completar
         });
 
         document.getElementById('deleteTaskForm').addEventListener('submit', function (event) {
             event.preventDefault();
             const taskIndex = parseInt(document.getElementById('deleteTaskIndex').value);
             deleteTask(taskIndex);
+            document.getElementById('deleteTaskIndex').value = ''; // Limpiar el campo después de eliminar
         });
 
-        // Fetch tasks on page load
+        // Cargar tareas al iniciar la página
         fetchTasks();
     </script>
 </body>
